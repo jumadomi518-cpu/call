@@ -4,7 +4,7 @@
   "description": "Simple WebRTC signaling server using Express and ws",
   "main": "app.js",
   "scripts": {
-    "start": "node app.js"
+    "start": "node src/app.js"
   },
   "dependencies": {
     "express": "^4.19.2",
