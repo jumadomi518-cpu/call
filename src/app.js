@@ -1,14 +1,15 @@
 const express = require("express");
-const app = express();
 const http = require("http");
-const server = http.createServer(app);
 const WebSocket = require("ws");
 
+const app = express();
+const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
+
 const clients = new Map();
 
 wss.on("connection", (ws) => {
-  console.log("New client connected");
+  console.log("Client connected");
 
   ws.on("message", (data) => {
     let msg;
@@ -20,63 +21,39 @@ wss.on("connection", (ws) => {
       return;
     }
 
-    // REGISTER USER
+    // REGISTER
     if (msg.type === "id") {
       clients.set(msg.id, ws);
       ws.userId = msg.id;
-      console.log("User registered:", msg.id);
+      console.log("Registered:", msg.id);
       return;
     }
 
-    const targetWs = clients.get(msg.to);
+    const target = clients.get(msg.to);
 
-    // CHECK TARGET EXISTS
-    if (!targetWs) {
+    if (!target) {
       console.log("User not found:", msg.to);
       return;
     }
 
-    // CHECK SOCKET IS OPEN
-    if (targetWs.readyState !== WebSocket.OPEN) {
-      console.log("Socket not open for:", msg.to);
+    if (target.readyState !== WebSocket.OPEN) {
+      console.log("Socket not open:", msg.to);
       return;
     }
 
-    // FORWARD MESSAGES
-    if (msg.type === "offer") {
-      targetWs.send(JSON.stringify({
-        type: "offer",
-        offer: msg.offer,
-        from: msg.from
-      }));
-    }
+    console.log(`Forwarding ${msg.type} from ${msg.from} → ${msg.to}`);
 
-    if (msg.type === "answer") {
-      targetWs.send(JSON.stringify({
-        type: "answer",
-        answer: msg.answer,
-        from: msg.from
-      }));
-    }
-
-    if (msg.type === "candidate") {
-      targetWs.send(JSON.stringify({
-        type: "candidate",
-        candidate: msg.candidate,
-        from: msg.from
-      }));
-    }
+    target.send(JSON.stringify(msg));
   });
 
-  // CLEAN UP ON DISCONNECT
   ws.on("close", () => {
     if (ws.userId) {
       clients.delete(ws.userId);
-      console.log("User disconnected:", ws.userId);
+      console.log("Disconnected:", ws.userId);
     }
   });
 });
 
 server.listen(4000, () => {
-  console.log("server listening on 4000");
+  console.log("Server running on port 4000");
 });
